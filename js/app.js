@@ -17,7 +17,8 @@ const AppState = {
         exercisesAttempted: 0,
         lastVisit: null,
         events: []
-    }
+    },
+    updateTimeout: null // Para debounce do slider
 };
 
 // Inicialização da aplicação
@@ -58,7 +59,7 @@ class CalculusVisionApp {
             console.log('CalculusVision Pro v2.0.0 inicializado com sucesso!');
         } catch (error) {
             console.error('Erro ao inicializar aplicação:', error);
-            this.showError('Erro ao inicializar a aplicação');
+            this.utils.showNotification('Erro ao inicializar a aplicação', 'error');
         }
     }
 
@@ -72,7 +73,8 @@ class CalculusVisionApp {
             
             const savedTheme = localStorage.getItem('calculusTheme');
             if (savedTheme === 'light') {
-                this.toggleTheme();
+                AppState.isDarkMode = false;
+                this.updateThemeUI();
             }
             
             const savedMode = localStorage.getItem('calculusMode');
@@ -103,7 +105,10 @@ class CalculusVisionApp {
 
     setupEventListeners() {
         // Modo professor/aluno
-        document.getElementById('mode-toggle').addEventListener('click', () => this.toggleMode());
+        document.getElementById('mode-toggle').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleMode();
+        });
         document.querySelectorAll('[data-mode]').forEach(btn => {
             btn.addEventListener('click', (e) => this.setModeType(e.target.dataset.mode));
         });
@@ -126,8 +131,11 @@ class CalculusVisionApp {
         
         document.getElementById('backspace-btn').addEventListener('click', () => this.backspace());
         
-        // Slider do ponto
-        document.getElementById('x-slider').addEventListener('input', (e) => this.updatePointValue(e.target.value));
+        // Slider do ponto (com debounce)
+        const slider = document.getElementById('x-slider');
+        slider.addEventListener('input', (e) => {
+            this.updatePointValue(e.target.value);
+        });
         
         // Botões de ponto rápido
         document.querySelectorAll('[data-point]').forEach(btn => {
@@ -171,6 +179,9 @@ class CalculusVisionApp {
         // Tema
         document.getElementById('theme-toggle').addEventListener('change', () => this.toggleTheme());
         
+        // Teclado acordeão
+        document.getElementById('keyboard-toggle').addEventListener('click', () => this.toggleKeyboard());
+        
         // Fechar modais
         document.querySelectorAll('.modal-close').forEach(btn => {
             btn.addEventListener('click', () => this.hideModal(btn.closest('.modal')));
@@ -184,25 +195,13 @@ class CalculusVisionApp {
                 }
             });
         });
-        // Adicionar no setupEventListeners:
-document.getElementById('keyboard-toggle').addEventListener('click', () => this.toggleKeyboard());
-
-// Adicionar método:
-toggleKeyboard() {
-    const container = document.getElementById('keyboard-container');
-    const icon = document.getElementById('keyboard-icon');
-    
-    container.classList.toggle('hidden');
-    icon.classList.toggle('rotate-180');
-    
-    // Animar altura
-    if (!container.classList.contains('hidden')) {
-        container.style.maxHeight = container.scrollHeight + 'px';
-    } else {
-        container.style.maxHeight = '0';
-    }
-}
         
+        // Fechar dropdown de modo ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.relative')) {
+                document.getElementById('mode-dropdown').classList.add('hidden');
+            }
+        });
     }
 
     // Métodos principais (implementação completa)
@@ -397,7 +396,7 @@ toggleKeyboard() {
         }
     }
 
-    // Métodos de análise (do original)
+    // Métodos de análise
     analyzeDerivative(expression, f, a, data, annotations) {
         try {
             const result = this.calculator.calculateDerivative(expression, a);
@@ -581,11 +580,8 @@ toggleKeyboard() {
         `;
     }
 
-    // Resto dos métodos do original...
-    // (Mantendo todas as funcionalidades: histórico, exercícios, exportação, etc.)
-
+    // Funções auxiliares
     generateExtremaHTML(analysis) {
-        // Implementação do original
         let html = '';
         
         if (analysis.criticalPoints.length > 0) {
@@ -638,69 +634,25 @@ toggleKeyboard() {
     }
 
     generateStepByStep(expression, mode, a, b = undefined) {
-        // Implementação do original
         let steps = [];
         
         switch(mode) {
             case 'derivada':
-                steps = this.generateDerivativeSteps(expression, a);
+                steps = this.calculator.generateDerivativeSteps(expression, a);
                 break;
             case 'integral':
-                steps = this.generateIntegralSteps(expression, a, b);
+                b = b || parseFloat(document.getElementById('integral-b').value);
+                steps = this.calculator.generateIntegralSteps(expression, a, b);
                 break;
             case 'limite':
-                steps = this.generateLimitSteps(expression, a);
+                steps = this.calculator.generateLimitSteps(expression, a);
                 break;
             default:
-                steps = this.generateFunctionSteps(expression);
-        }
-        
-        return steps;
-    }
-
-    generateDerivativeSteps(expression, a) {
-        const steps = [];
-        
-        try {
-            const node = math.parse(expression);
-            const derivative = math.derivative(node, 'x');
-            
-            steps.push({
-                step: 1,
-                title: 'Função Original',
-                content: `f(x) = ${expression}`
-            });
-            
-            steps.push({
-                step: 2,
-                title: 'Aplicando Regras de Derivação',
-                content: `Derivando termo a termo...`
-            });
-            
-            steps.push({
-                step: 3,
-                title: 'Derivada Encontrada',
-                content: `f'(x) = ${derivative.toString()}`
-            });
-            
-            steps.push({
-                step: 4,
-                title: 'Avaliando no Ponto',
-                content: `f'(${a}) = ${derivative.evaluate({x: a})}`
-            });
-            
-            steps.push({
-                step: 5,
-                title: 'Interpretação',
-                content: `A derivada representa a taxa de variação instantânea da função no ponto x = ${a}.`
-            });
-            
-        } catch (e) {
-            steps.push({
-                step: 1,
-                title: 'Erro no Cálculo',
-                content: `Não foi possível calcular o passo a passo: ${e.message}`
-            });
+                steps = [{
+                    step: 1,
+                    title: 'Função Analisada',
+                    content: `f(x) = ${expression}`
+                }];
         }
         
         return steps;
@@ -736,15 +688,17 @@ toggleKeyboard() {
                 explanations.push(
                     'A derivada de uma função em um ponto representa a <strong>taxa de variação instantânea</strong> da função naquele ponto.',
                     'Geometricamente, é o <strong>coeficiente angular da reta tangente</strong> à curva no ponto.',
-                    'Se a derivada é positiva, a função é crescente; se negativa, é decrescente.'
+                    'Se a derivada é positiva, a função é crescente; se negativa, é decrescente.',
+                    'Pontos onde a derivada é zero são chamados de <strong>pontos críticos</strong> (máximos, mínimos ou pontos de inflexão).'
                 );
                 break;
                 
             case 'integral':
                 explanations.push(
-                    'A integral definida representa a <strong>área líquida</strong> entre a curva e o eixo x.',
+                    'A integral definida representa a <strong>área líquida</strong> entre a curva e o eixo x, entre dois pontos.',
                     'É o processo inverso da derivação (Teorema Fundamental do Cálculo).',
-                    'Integrais impróprias lidam com intervalos infinitos ou descontinuidades.'
+                    'Se a função está acima do eixo x, a área é positiva; se está abaixo, é negativa.',
+                    'Integrais impróprias lidam com intervalos infinitos ou descontinuidades na função.'
                 );
                 break;
                 
@@ -752,9 +706,18 @@ toggleKeyboard() {
                 explanations.push(
                     'O limite descreve o <strong>comportamento</strong> de uma função quando se aproxima de um ponto.',
                     'Limites laterais podem ser diferentes (descontinuidade de salto).',
-                    'Limites infinitos indicam assíntotas verticais.'
+                    'Limites infinitos indicam assíntotas verticais.',
+                    'Se o limite existe e é igual ao valor da função no ponto, a função é contínua naquele ponto.'
                 );
                 break;
+                
+            default:
+                explanations.push(
+                    'Uma função associa cada valor de x a exatamente um valor de y = f(x).',
+                    'O <strong>domínio</strong> são todos os valores de x para os quais a função é definida.',
+                    'A <strong>imagem</strong> são todos os valores que f(x) pode assumir.',
+                    'O <strong>gráfico</strong> mostra visualmente o comportamento da função.'
+                );
         }
         
         return explanations;
@@ -764,11 +727,16 @@ toggleKeyboard() {
         const container = document.getElementById('concept-explanation-content');
         container.innerHTML = '';
         
-        explanations.forEach(explanation => {
+        explanations.forEach((explanation, index) => {
             const expDiv = document.createElement('div');
             expDiv.className = 'concept-explanation';
             expDiv.innerHTML = `
-                <div class="text-sm">${explanation}</div>
+                <div class="flex items-start">
+                    <div class="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center flex-shrink-0 mt-0.5 mr-2">
+                        <span class="text-emerald-600 dark:text-emerald-300 text-xs font-bold">${index + 1}</span>
+                    </div>
+                    <div class="text-sm flex-1">${explanation}</div>
+                </div>
             `;
             container.appendChild(expDiv);
         });
@@ -781,28 +749,60 @@ toggleKeyboard() {
         
         switch(mode) {
             case 'derivada':
-                questions.push(
-                    `O que acontece com a derivada quando x → ∞?`,
-                    `Em que pontos a derivada se anula?`,
-                    `Como a derivada se relaciona com a velocidade de crescimento da função?`
-                );
+                questions.push({
+                    question: `O que a derivada f'(${a}) representa geometricamente?`,
+                    answer: `Geometricamente, f'(${a}) representa o <strong>coeficiente angular da reta tangente</strong> à curva no ponto (${a}, f(${a})). Se positivo, a função está crescendo; se negativo, está decrescendo.`
+                });
+                questions.push({
+                    question: `Como a derivada se relaciona com a velocidade de variação da função?`,
+                    answer: `A derivada é a <strong>taxa de variação instantânea</strong>. Em contextos físicos, se f(t) representa posição, f'(t) representa velocidade; se f(t) representa velocidade, f'(t) representa aceleração.`
+                });
+                questions.push({
+                    question: `O que significa quando a derivada é zero em um ponto?`,
+                    answer: `Quando f'(x) = 0, temos um <strong>ponto crítico</strong>. Pode ser um máximo local, mínimo local ou ponto de inflexão. Para determinar, analise a segunda derivada f''(x) ou o comportamento da função nos arredores do ponto.`
+                });
                 break;
                 
             case 'integral':
-                questions.push(
-                    `O que a integral representa geometricamente?`,
-                    `Como mudaria o resultado se invertêssemos os limites de integração?`,
-                    `O que acontece com a área quando a função cruza o eixo x?`
-                );
+                const b = parseFloat(document.getElementById('integral-b')?.value || 2);
+                questions.push({
+                    question: `O que a integral ∫<sub>${a}</sub><sup>${b}</sup> f(x) dx representa geometricamente?`,
+                    answer: `Geometricamente, representa a <strong>área líquida</strong> entre a curva y = f(x) e o eixo x, de x = ${a} até x = ${b}. Áreas acima do eixo são positivas, abaixo são negativas.`
+                });
+                questions.push({
+                    question: `Qual a relação entre derivada e integral?`,
+                    answer: `Derivada e integral são <strong>operações inversas</strong> (Teorema Fundamental do Cálculo). Se F(x) é uma primitiva de f(x), então ∫<sub>a</sub><sup>b</sub> f(x) dx = F(b) - F(a). A derivada desfaz a integral, e vice-versa.`
+                });
+                questions.push({
+                    question: `Como interpretar uma integral imprópria?`,
+                    answer: `Integrais impróprias lidam com intervalos infinitos ou descontinuidades. Calculamos como limite: ∫<sub>a</sub><sup>∞</sup> f(x) dx = lim<sub>t→∞</sub> ∫<sub>a</sub><sup>t</sup> f(x) dx. Converge se o limite existe (é finito).`
+                });
                 break;
                 
             case 'limite':
-                questions.push(
-                    `O que acontece quando a → 0?`,
-                    `Existem assíntotas verticais ou horizontais?`,
-                    `Como o limite se comporta nos extremos do domínio?`
-                );
+                questions.push({
+                    question: `Qual a diferença entre limite e valor da função?`,
+                    answer: `O limite descreve o <strong>comportamento de aproximação</strong> quando x → ${a}, não necessariamente o valor em x = ${a}. A função pode nem estar definida em ${a}, mas ter limite.`
+                });
+                questions.push({
+                    question: `Quando um limite não existe?`,
+                    answer: `Um limite não existe quando: 1) Limites laterais são diferentes; 2) A função oscila infinitamente; 3) A função tende a ±∞; 4) Não há padrão definido de aproximação.`
+                });
+                questions.push({
+                    question: `Como limites se relacionam com continuidade?`,
+                    answer: `Uma função é contínua em x = ${a} se: 1) f(${a}) existe; 2) lim<sub>x→${a}</sub> f(x) existe; 3) lim<sub>x→${a}</sub> f(x) = f(${a}). Falha em qualquer condição resulta em descontinuidade.`
+                });
                 break;
+                
+            default:
+                questions.push({
+                    question: `Como identificar o domínio de uma função?`,
+                    answer: `O domínio são todos os valores de x para os quais f(x) é definida. Restrições comuns: denominador ≠ 0, argumento de logaritmo > 0, radicando de raiz quadrada ≥ 0, argumento de funções trigonométricas inversas entre -1 e 1.`
+                });
+                questions.push({
+                    question: `O que são zeros de uma função e como encontrá-los?`,
+                    answer: `Zeros (ou raízes) são valores de x onde f(x) = 0. Geometricamente, são os pontos onde o gráfico cruza o eixo x. Podem ser encontrados analiticamente (resolvendo f(x) = 0) ou numericamente (métodos como Newton-Raphson).`
+                });
         }
         
         return questions;
@@ -812,16 +812,45 @@ toggleKeyboard() {
         const container = document.getElementById('guiding-questions-content');
         container.innerHTML = '';
         
-        questions.forEach(question => {
-            const qDiv = document.createElement('div');
-            qDiv.className = 'bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-lg';
-            qDiv.innerHTML = `
-                <div class="flex items-start">
-                    <i class="fas fa-question text-blue-500 mt-1 mr-2"></i>
-                    <div class="text-sm text-blue-700">${question}</div>
+        questions.forEach((item, index) => {
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'border border-slate-300 dark:border-slate-600 rounded-lg mb-3 overflow-hidden';
+            questionDiv.innerHTML = `
+                <button class="w-full text-left p-4 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors question-toggle" data-index="${index}">
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span class="text-blue-600 dark:text-blue-300 text-xs font-bold">Q${index + 1}</span>
+                        </div>
+                        <div class="text-left">
+                            <div class="font-medium text-blue-700 dark:text-blue-300">${item.question}</div>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-down text-blue-500 transition-transform duration-300" data-icon="${index}"></i>
+                </button>
+                <div class="answer-content hidden p-4 border-t border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/30">
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span class="text-green-600 dark:text-green-300 text-xs font-bold">A</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">${item.answer}</div>
+                        </div>
+                    </div>
                 </div>
             `;
-            container.appendChild(qDiv);
+            container.appendChild(questionDiv);
+        });
+        
+        // Adicionar event listeners para acordeão
+        document.querySelectorAll('.question-toggle').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = e.currentTarget.dataset.index;
+                const answer = document.querySelector(`[data-index="${index}"]`).nextElementSibling;
+                const icon = document.querySelector(`[data-icon="${index}"]`);
+                
+                answer.classList.toggle('hidden');
+                icon.classList.toggle('rotate-180');
+            });
         });
         
         document.getElementById('guiding-questions-container').classList.remove('hidden');
@@ -838,12 +867,12 @@ toggleKeyboard() {
             
             container.innerHTML = `
                 <div class="space-y-3">
-                    <div class="p-3 bg-indigo-50 rounded-lg">
-                        <div class="text-sm font-bold text-indigo-800 mb-1">Derivada Simbólica:</div>
+                    <div class="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                        <div class="text-sm font-bold text-indigo-800 dark:text-indigo-300 mb-1">Derivada Simbólica:</div>
                         <div class="font-mono text-sm">f'(x) = ${derivative.toString()}</div>
                     </div>
-                    <div class="p-3 bg-emerald-50 rounded-lg">
-                        <div class="text-sm font-bold text-emerald-800 mb-1">Primitiva:</div>
+                    <div class="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                        <div class="text-sm font-bold text-emerald-800 dark:text-emerald-300 mb-1">Primitiva:</div>
                         <div class="font-mono text-sm">F(x) = ${integral.toString()} + C</div>
                     </div>
                 </div>
@@ -887,11 +916,15 @@ toggleKeyboard() {
     }
 
     updateInterfaceForMode() {
-        if (AppState.isTeacherMode) {
-            document.getElementById('step-toggle').classList.remove('hidden');
-        } else {
-            document.getElementById('step-toggle').classList.add('hidden');
-            document.getElementById('step-by-step-container').classList.add('hidden');
+        const stepToggle = document.getElementById('step-toggle');
+        if (stepToggle) {
+            if (AppState.isTeacherMode) {
+                stepToggle.classList.remove('hidden');
+            } else {
+                stepToggle.classList.add('hidden');
+                document.getElementById('step-by-step-container')?.classList.add('hidden');
+                AppState.showStepByStep = false;
+            }
         }
     }
 
@@ -905,6 +938,9 @@ toggleKeyboard() {
                 element.classList.toggle('tab-active', tab === mode);
                 element.classList.toggle('text-slate-400', tab !== mode);
                 element.classList.toggle('text-white', tab === mode);
+                element.classList.toggle('bg-gradient-to-r', tab === mode);
+                element.classList.toggle('from-indigo-500', tab === mode);
+                element.classList.toggle('to-purple-500', tab === mode);
             }
         });
         
@@ -917,21 +953,32 @@ toggleKeyboard() {
             'exercicios': 'EXERCÍCIOS'
         };
         
-        document.getElementById('current-mode-label').textContent = modeLabels[mode] || 'FUNÇÃO';
-        document.getElementById('graph-title').textContent = this.getGraphTitle(mode);
-        document.getElementById('graph-subtitle').textContent = this.getGraphSubtitle(mode);
+        const modeLabel = document.getElementById('current-mode-label');
+        if (modeLabel) {
+            modeLabel.textContent = modeLabels[mode] || 'FUNÇÃO';
+        }
+        
+        const graphTitle = document.getElementById('graph-title');
+        const graphSubtitle = document.getElementById('graph-subtitle');
+        
+        if (graphTitle && graphSubtitle) {
+            graphTitle.textContent = this.getGraphTitle(mode);
+            graphSubtitle.textContent = this.getGraphSubtitle(mode);
+        }
         
         // Mostrar/ocultar controles específicos
         this.updateOptionsVisibility(mode);
         
         // Mostrar/ocultar controles de integração
         const integralControls = document.getElementById('integral-controls');
+        const pointLabel = document.getElementById('point-label');
+        
         if (mode === 'integral') {
-            integralControls.classList.remove('hidden');
-            document.getElementById('point-label').textContent = 'Limites de Integração';
+            if (integralControls) integralControls.classList.remove('hidden');
+            if (pointLabel) pointLabel.textContent = 'Limites de Integração';
         } else {
-            integralControls.classList.add('hidden');
-            document.getElementById('point-label').textContent = 'Ponto de Estudo';
+            if (integralControls) integralControls.classList.add('hidden');
+            if (pointLabel) pointLabel.textContent = 'Ponto de Estudo';
         }
         
         // Se for modo exercícios, mostrar modal
@@ -966,12 +1013,14 @@ toggleKeyboard() {
         const commonOptions = document.getElementById('common-options');
         const limitOptions = document.getElementById('limit-options');
         
-        if (mode === 'limite') {
-            commonOptions.classList.add('hidden');
-            limitOptions.classList.remove('hidden');
-        } else {
-            commonOptions.classList.remove('hidden');
-            limitOptions.classList.add('hidden');
+        if (commonOptions && limitOptions) {
+            if (mode === 'limite') {
+                commonOptions.classList.add('hidden');
+                limitOptions.classList.remove('hidden');
+            } else {
+                commonOptions.classList.remove('hidden');
+                limitOptions.classList.add('hidden');
+            }
         }
     }
 
@@ -1006,19 +1055,71 @@ toggleKeyboard() {
     updatePointValue(value = null) {
         const slider = document.getElementById('x-slider');
         const display = document.getElementById('a-value');
-        const point = value !== null ? value : slider.value;
+        const point = value !== null ? parseFloat(value) : parseFloat(slider.value);
         
-        display.textContent = parseFloat(point).toFixed(1);
+        if (display) {
+            display.textContent = point.toFixed(1);
+        }
         
-        // Atualizar gráfico se já estiver plotado
-        if (AppState.currentPlot) {
-            this.updatePlot();
+        // Atualização instantânea do gráfico
+        if (AppState.currentFunction && this.graph.currentPlot) {
+            // Cancelar atualização anterior se existir
+            if (AppState.updateTimeout) {
+                clearTimeout(AppState.updateTimeout);
+            }
+            
+            // Atualizar após pequeno delay para performance
+            AppState.updateTimeout = setTimeout(() => {
+                this.updatePlotWithPoint(point);
+            }, 50);
+        }
+    }
+
+    updatePlotWithPoint(point) {
+        try {
+            const f = this.utils.createFunction(AppState.currentFunction);
+            const fa = f(point);
+            
+            // Atualizar apenas o ponto no gráfico
+            if (this.graph.currentPlot) {
+                this.graph.updatePointOnPlot(point, fa);
+            }
+            
+            // Atualizar também os cálculos se for modo derivada
+            if (AppState.currentMode === 'derivada') {
+                this.updateDerivativeCalculation(point);
+            }
+            
+        } catch (error) {
+            console.warn('Não foi possível atualizar ponto:', error);
+        }
+    }
+
+    updateDerivativeCalculation(point) {
+        try {
+            const result = this.calculator.calculateDerivative(AppState.currentFunction, point);
+            const analysisOutput = document.getElementById('analysis-output');
+            
+            if (analysisOutput) {
+                // Encontrar e atualizar o valor da derivada
+                const derivativeElements = analysisOutput.querySelectorAll('.derivative-value');
+                derivativeElements.forEach(el => {
+                    if (el.dataset.point === 'x') {
+                        el.textContent = result.numeric.toFixed(4);
+                    }
+                });
+            }
+        } catch (error) {
+            // Ignorar erros na atualização
         }
     }
 
     setPoint(value) {
-        document.getElementById('x-slider').value = value;
-        this.updatePointValue(value);
+        const slider = document.getElementById('x-slider');
+        if (slider) {
+            slider.value = value;
+            this.updatePointValue(value);
+        }
     }
 
     updatePlot() {
@@ -1028,8 +1129,11 @@ toggleKeyboard() {
     }
 
     clearFunction() {
-        document.getElementById('func-input').value = '';
-        document.getElementById('func-input').focus();
+        const input = document.getElementById('func-input');
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
     }
 
     // Histórico
@@ -1081,10 +1185,13 @@ toggleKeyboard() {
 
     useHistoryItem(index) {
         const expression = AppState.history[index];
-        document.getElementById('func-input').value = expression;
-        AppState.currentFunction = expression;
-        this.hideModal(document.getElementById('history-modal'));
-        this.calculateAndPlot();
+        const input = document.getElementById('func-input');
+        if (input) {
+            input.value = expression;
+            AppState.currentFunction = expression;
+            this.hideModal(document.getElementById('history-modal'));
+            this.calculateAndPlot();
+        }
     }
 
     clearHistory() {
@@ -1100,8 +1207,11 @@ toggleKeyboard() {
             const completedConcepts = AppState.userProgress.concepts.length;
             const percent = Math.round((completedConcepts / totalConcepts) * 100);
             
-            document.getElementById('progress-percent').textContent = `${percent}%`;
-            document.getElementById('progress-bar').style.width = `${percent}%`;
+            const progressPercent = document.getElementById('progress-percent');
+            const progressBar = document.getElementById('progress-bar');
+            
+            if (progressPercent) progressPercent.textContent = `${percent}%`;
+            if (progressBar) progressBar.style.width = `${percent}%`;
         }
     }
 
@@ -1135,32 +1245,46 @@ toggleKeyboard() {
     }
 
     updateThemeUI() {
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.checked = AppState.isDarkMode;
+        }
+        
         if (AppState.isDarkMode) {
             document.body.classList.add('dark');
-            document.getElementById('theme-toggle').checked = true;
+            document.body.classList.remove('light');
         } else {
             document.body.classList.remove('dark');
-            document.getElementById('theme-toggle').checked = false;
+            document.body.classList.add('light');
         }
     }
 
     updateModeUI() {
+        const modeLabel = document.getElementById('mode-label');
+        const progress = document.getElementById('student-progress');
+        const button = document.getElementById('mode-toggle');
+        
+        if (!modeLabel || !button) return;
+        
         if (AppState.isTeacherMode) {
-            document.getElementById('mode-label').textContent = 'Professor';
-            document.getElementById('student-progress').classList.add('hidden');
-            document.getElementById('mode-toggle').className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm';
+            modeLabel.textContent = 'Professor';
+            if (progress) progress.classList.add('hidden');
+            button.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm';
             document.body.classList.add('teacher-mode');
+            document.body.classList.remove('student-mode');
         } else {
-            document.getElementById('mode-label').textContent = 'Aluno';
-            document.getElementById('student-progress').classList.remove('hidden');
-            document.getElementById('mode-toggle').className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 text-white text-sm';
+            modeLabel.textContent = 'Aluno';
+            if (progress) progress.classList.remove('hidden');
+            button.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 text-white text-sm';
             document.body.classList.add('student-mode');
+            document.body.classList.remove('teacher-mode');
         }
     }
 
     // Modais
     showExamples() {
-        document.getElementById('examples-modal').style.display = 'flex';
+        const modal = document.getElementById('examples-modal');
+        if (modal) modal.style.display = 'flex';
     }
 
     hideModal(modal) {
@@ -1170,50 +1294,59 @@ toggleKeyboard() {
     }
 
     useExample(example) {
-        document.getElementById('func-input').value = example;
-        AppState.currentFunction = example;
-        this.hideModal(document.getElementById('examples-modal'));
-        this.calculateAndPlot();
+        const input = document.getElementById('func-input');
+        if (input) {
+            input.value = example;
+            AppState.currentFunction = example;
+            this.hideModal(document.getElementById('examples-modal'));
+            this.calculateAndPlot();
+        }
     }
 
     showHistory() {
         this.updateHistoryDisplay();
-        document.getElementById('history-modal').style.display = 'flex';
+        const modal = document.getElementById('history-modal');
+        if (modal) modal.style.display = 'flex';
     }
 
     showExercises() {
-        // Implementação dos exercícios
-        document.getElementById('exercises-modal').style.display = 'flex';
+        const modal = document.getElementById('exercises-modal');
+        if (modal) modal.style.display = 'flex';
         this.trackEvent('exercises_viewed', {});
     }
 
     hideExercises() {
-        document.getElementById('exercises-modal').style.display = 'none';
+        const modal = document.getElementById('exercises-modal');
+        if (modal) modal.style.display = 'none';
         this.setCalcMode('funcao');
     }
 
     showExportOptions() {
-        document.getElementById('export-modal').style.display = 'flex';
+        const modal = document.getElementById('export-modal');
+        if (modal) modal.style.display = 'flex';
     }
 
     hideExportOptions() {
-        document.getElementById('export-modal').style.display = 'none';
+        const modal = document.getElementById('export-modal');
+        if (modal) modal.style.display = 'none';
     }
 
     showFeedbackModal() {
-        document.getElementById('feedback-modal').style.display = 'flex';
+        const modal = document.getElementById('feedback-modal');
+        if (modal) modal.style.display = 'flex';
     }
 
     hideFeedbackModal() {
-        document.getElementById('feedback-modal').style.display = 'none';
+        const modal = document.getElementById('feedback-modal');
+        if (modal) modal.style.display = 'none';
     }
 
     submitFeedback() {
-        const type = document.getElementById('feedback-type').value;
-        const message = document.getElementById('feedback-message').value;
-        const contact = document.getElementById('feedback-contact').checked;
+        const type = document.getElementById('feedback-type')?.value;
+        const message = document.getElementById('feedback-message')?.value;
+        const contact = document.getElementById('feedback-contact')?.checked;
         
-        if (!message.trim()) {
+        if (!message || !message.trim()) {
             this.utils.showNotification('Por favor, digite uma mensagem', 'error');
             return;
         }
@@ -1241,7 +1374,8 @@ toggleKeyboard() {
             this.utils.showNotification('Feedback enviado com sucesso! Obrigado!', 'success');
             
             // Limpar formulário
-            document.getElementById('feedback-message').value = '';
+            const messageInput = document.getElementById('feedback-message');
+            if (messageInput) messageInput.value = '';
             
             this.trackEvent('feedback', { type: type });
         }, 1500);
@@ -1250,10 +1384,13 @@ toggleKeyboard() {
     toggleStepByStep() {
         AppState.showStepByStep = !AppState.showStepByStep;
         const button = document.getElementById('step-toggle');
+        const container = document.getElementById('step-by-step-container');
+        
+        if (!button || !container) return;
         
         if (AppState.showStepByStep) {
             button.classList.add('bg-indigo-100', 'text-indigo-700');
-            document.getElementById('step-by-step-container').classList.remove('hidden');
+            container.classList.remove('hidden');
             if (AppState.currentFunction) {
                 const a = parseFloat(document.getElementById('x-slider').value);
                 const steps = this.generateStepByStep(AppState.currentFunction, AppState.currentMode, a);
@@ -1261,7 +1398,24 @@ toggleKeyboard() {
             }
         } else {
             button.classList.remove('bg-indigo-100', 'text-indigo-700');
-            document.getElementById('step-by-step-container').classList.add('hidden');
+            container.classList.add('hidden');
+        }
+    }
+
+    toggleKeyboard() {
+        const container = document.getElementById('keyboard-container');
+        const icon = document.getElementById('keyboard-icon');
+        
+        if (!container || !icon) return;
+        
+        container.classList.toggle('hidden');
+        icon.classList.toggle('rotate-180');
+        
+        // Animar altura
+        if (!container.classList.contains('hidden')) {
+            container.style.maxHeight = container.scrollHeight + 'px';
+        } else {
+            container.style.maxHeight = '0';
         }
     }
 
@@ -1296,18 +1450,23 @@ toggleKeyboard() {
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             AppState.deferredPrompt = e;
-            document.getElementById('pwa-install').classList.remove('hidden');
+            const pwaInstall = document.getElementById('pwa-install');
+            if (pwaInstall) pwaInstall.classList.remove('hidden');
         });
         
         // Detectar se o app está instalado
         window.addEventListener('appinstalled', () => {
-            document.getElementById('pwa-install').classList.add('hidden');
+            const pwaInstall = document.getElementById('pwa-install');
+            if (pwaInstall) pwaInstall.classList.add('hidden');
             AppState.deferredPrompt = null;
             this.utils.showNotification('App instalado com sucesso!', 'success');
         });
         
         // Configurar botão de instalação
-        document.getElementById('pwa-install').addEventListener('click', () => this.installPWA());
+        const pwaInstall = document.getElementById('pwa-install');
+        if (pwaInstall) {
+            pwaInstall.addEventListener('click', () => this.installPWA());
+        }
     }
 
     installPWA() {
@@ -1320,61 +1479,6 @@ toggleKeyboard() {
                 AppState.deferredPrompt = null;
             });
         }
-    }
-}
-
-updatePointValue(value = null) {
-    const slider = document.getElementById('x-slider');
-    const display = document.getElementById('a-value');
-    const point = value !== null ? value : slider.value;
-    
-    display.textContent = parseFloat(point).toFixed(1);
-    
-    // Atualização instantânea do gráfico
-    if (AppState.currentFunction && AppState.currentPlot) {
-        // Cancelar atualização anterior se existir
-        if (this.updateTimeout) {
-            clearTimeout(this.updateTimeout);
-        }
-        
-        // Atualizar após pequeno delay para performance
-        this.updateTimeout = setTimeout(() => {
-            this.updatePlotWithPoint(point);
-        }, 100);
-    }
-}
-
-updatePlotWithPoint(point) {
-    try {
-        const f = this.utils.createFunction(AppState.currentFunction);
-        const fa = f(parseFloat(point));
-        
-        // Atualizar apenas o ponto no gráfico
-        if (this.graph.currentPlot) {
-            Plotly.react('plot', this.graph.getUpdatedPointData(point, fa), this.graph.getLayout());
-        }
-        
-        // Atualizar também os cálculos
-        this.updateCalculationsForPoint(point);
-        
-    } catch (error) {
-        console.warn('Não foi possível atualizar ponto:', error);
-    }
-}
-
-updateCalculationsForPoint(point) {
-    // Atualizar cálculos específicos para o novo ponto
-    const analysisOutput = document.getElementById('analysis-output');
-    if (analysisOutput) {
-        // Encontrar e atualizar elementos que mostram f(point)
-        const pointElements = analysisOutput.querySelectorAll('.point-value');
-        pointElements.forEach(el => {
-            if (el.dataset.point === 'x') {
-                const f = this.utils.createFunction(AppState.currentFunction);
-                const value = f(parseFloat(point));
-                el.textContent = value.toFixed(4);
-            }
-        });
     }
 }
 
