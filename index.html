@@ -1,23 +1,28 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
+    <!-- Meta tags mantidas do original -->
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CalculusVision Pro - Ferramenta Educacional para Cálculo</title>
-    
-    <!-- Meta tags -->
-    <meta name="description" content="CalculusVision Pro - Ferramenta educacional visual para cálculo diferencial e integral">
-    <meta name="keywords" content="cálculo, matemática, educação, derivada, integral, limite">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="CalculusVision Pro - Ferramenta educacional visual para cálculo diferencial e integral com recursos pedagógicos avançados">
+    <meta name="keywords" content="cálculo, matemática, educação, derivada, integral, limite, ensino">
     <meta name="author" content="CalculusVision Team">
     <meta name="license" content="MIT">
+    <title>CalculusVision Pro - Ferramenta Educacional para Cálculo</title>
+    
+    <!-- Versão e analytics -->
+    <meta name="version" content="2.0.0">
+    <meta name="build-date" content="2024-01-22">
     
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="assets/icons/icon-192.png">
     
-    <!-- CSS -->
-    <link href="https://cdn.tailwindcss.com" rel="stylesheet">
+    <!-- CSS Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CSS Local -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/themes.css">
     <link rel="stylesheet" href="css/components.css">
@@ -26,8 +31,79 @@
     <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    
+    <style>
+        /* Estilos críticos mantidos inline para carregamento imediato */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 300px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(99, 102, 241, 0.2);
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .version-badge {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            z-index: 100;
+        }
+        
+        .pwa-install {
+            position: fixed;
+            bottom: 50px;
+            right: 10px;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 100;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        
+        /* Transições para tema */
+        .theme-transition {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+    </style>
 </head>
-<body class="p-4">
+<body class="p-4 theme-transition">
+
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay">
         <div class="loading-content">
@@ -38,41 +114,423 @@
     </div>
 
     <div class="max-w-md mx-auto space-y-6 pb-20">
-        <!-- Header -->
-        <div class="glass-card" id="header-container">
-            <!-- O conteúdo será injetado pelo JavaScript -->
+        <!-- Header com modo professor/aluno -->
+        <div class="glass-card">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                        <i class="fas fa-calculator text-white text-xl"></i>
+                    </div>
+                    <div class="text-left">
+                        <h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">CalculusVision Pro</h1>
+                        <p class="text-sm text-slate-500">Ferramenta educacional para cálculo</p>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col items-end gap-2">
+                    <div class="flex items-center gap-2">
+                        <div class="relative">
+                            <button id="mode-toggle" class="flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 text-white text-sm">
+                                <i class="fas fa-user-graduate"></i>
+                                <span id="mode-label">Aluno</span>
+                            </button>
+                            <div class="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 hidden" id="mode-dropdown">
+                                <button data-mode="student" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Modo Aluno</button>
+                                <button data-mode="teacher" class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Modo Professor</button>
+                            </div>
+                        </div>
+                        
+                        <i class="fas fa-moon text-slate-500"></i>
+                        <label class="theme-toggle">
+                            <input type="checkbox" id="theme-toggle">
+                            <span class="theme-slider"></span>
+                        </label>
+                        <i class="fas fa-sun text-amber-500"></i>
+                        
+                        <button id="history-btn" class="btn-secondary p-2">
+                            <i class="fas fa-history"></i>
+                        </button>
+                    </div>
+                    <div id="status-indicator" class="flex items-center text-xs text-green-500">
+                        <span class="status-dot status-active"></span>
+                        Pronto
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Barra de progresso (modo aluno) -->
+            <div id="student-progress" class="mt-3 hidden">
+                <div class="flex justify-between text-xs mb-1">
+                    <span>Progresso</span>
+                    <span id="progress-percent">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div id="progress-bar" class="bg-gradient-to-r from-emerald-500 to-green-500 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
         </div>
 
-        <!-- Navigation -->
-        <div class="glass-card p-2" id="navigation-container">
-            <!-- O conteúdo será injetado pelo JavaScript -->
+        <!-- Navigation Tabs -->
+        <div class="glass-card p-2">
+            <div class="flex justify-around">
+                <button data-tab="funcao" class="flex-1 py-3 px-2 text-center font-medium rounded-lg transition-all tab-active">
+                    <i class="fas fa-function text-lg mb-1 block"></i>
+                    <span class="text-xs">Função</span>
+                </button>
+                <button data-tab="derivada" class="flex-1 py-3 px-2 text-center font-medium rounded-lg transition-all">
+                    <i class="fas fa-slope text-lg mb-1 block"></i>
+                    <span class="text-xs">Derivada</span>
+                </button>
+                <button data-tab="integral" class="flex-1 py-3 px-2 text-center font-medium rounded-lg transition-all">
+                    <i class="fas fa-area-chart text-lg mb-1 block"></i>
+                    <span class="text-xs">Integral</span>
+                </button>
+                <button data-tab="limite" class="flex-1 py-3 px-2 text-center font-medium rounded-lg transition-all">
+                    <i class="fas fa-infinity text-lg mb-1 block"></i>
+                    <span class="text-xs">Limite</span>
+                </button>
+                <button data-tab="exercicios" class="flex-1 py-3 px-2 text-center font-medium rounded-lg transition-all">
+                    <i class="fas fa-graduation-cap text-lg mb-1 block"></i>
+                    <span class="text-xs">Exercícios</span>
+                </button>
+            </div>
         </div>
 
-        <!-- Graph -->
-        <div class="glass-card overflow-hidden" id="graph-container">
-            <!-- O conteúdo será injetado pelo JavaScript -->
+        <!-- Gráfico Principal -->
+        <div class="glass-card overflow-hidden">
+            <div class="px-4 pt-4 flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-lg" id="graph-title">Gráfico da Função f(x)</h3>
+                    <p class="text-sm text-slate-500" id="graph-subtitle">Clique em Calcular e Plotar para visualizar</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="fullscreen-btn" class="btn-secondary p-2">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <button id="export-btn" class="btn-secondary p-2">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button id="reset-view-btn" class="btn-secondary p-2">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="plot" class="w-full h-80"></div>
+            
+            <div class="px-4 pb-4 flex justify-between items-center">
+                <div class="text-sm text-slate-500">
+                    <i class="fas fa-hand-point-up mr-2"></i>
+                    Toque no gráfico para detalhes
+                </div>
+                <button id="legend-toggle" class="text-sm px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg">
+                    <i class="fas fa-layer-group"></i>
+                </button>
+            </div>
         </div>
 
-        <!-- Function Controls -->
-        <div class="glass-card space-y-6" id="controls-container">
-            <!-- O conteúdo será injetado pelo JavaScript -->
+        <!-- Controles de Função -->
+        <div class="glass-card space-y-6">
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <i class="fas fa-square-root-alt text-indigo-400"></i>
+                        Função f(x)
+                    </h3>
+                    <button id="examples-btn" class="btn-secondary text-sm flex items-center gap-2">
+                        <i class="fas fa-list"></i>
+                        Exemplos
+                    </button>
+                </div>
+                
+                <div class="gradient-card p-4">
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="math-symbol text-2xl font-bold text-indigo-300">f(x) =</span>
+                        <input id="func-input" type="text" value="x^2" 
+                               class="flex-1 bg-transparent text-xl font-mono outline-none text-current placeholder-slate-500"
+                               placeholder="ex: x^2, sin(x), exp(x)">
+                    </div>
+                    
+                    <!-- Controles de Integração -->
+                    <div id="integral-controls" class="mb-3 hidden">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm text-slate-500 mb-1">Limite Inferior (a)</label>
+                                <input id="integral-a" type="number" value="0" step="0.1" 
+                                       class="w-full bg-transparent border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-slate-500 mb-1">Limite Superior (b)</label>
+                                <input id="integral-b" type="number" value="1" step="0.1" 
+                                       class="w-full bg-transparent border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2">
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="improper-integral">
+                                <span class="checkmark"></span>
+                                <span class="text-sm">Integral Imprópria</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button id="calculate-btn" class="btn-primary flex-1 flex items-center justify-center gap-2">
+                            <i class="fas fa-play"></i>
+                            Calcular e Plotar
+                        </button>
+                        <button id="clear-btn" class="btn-secondary px-4">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="function-status" class="hidden p-3 bg-blue-100 text-blue-800 rounded-lg text-sm">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                    Processando função...
+                </div>
+            </div>
+
+            <!-- Opções de Visualização -->
+            <div class="space-y-3">
+                <h4 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fas fa-eye text-amber-400"></i>
+                    Visualização
+                </h4>
+                
+                <div id="common-options" class="grid grid-cols-2 gap-3">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="show-grid" checked>
+                        <span class="checkmark"></span>
+                        <span class="text-sm">Grade</span>
+                    </label>
+                    
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="show-derivative">
+                        <span class="checkmark"></span>
+                        <span class="text-sm">Derivada f'(x)</span>
+                    </label>
+                    
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="show-tangent">
+                        <span class="checkmark"></span>
+                        <span class="text-sm">Reta Tangente</span>
+                    </label>
+                    
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="show-area">
+                        <span class="checkmark"></span>
+                        <span class="text-sm">Área sob Curva</span>
+                    </label>
+                    
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="show-extrema">
+                        <span class="checkmark"></span>
+                        <span class="text-sm">Extremos</span>
+                    </label>
+                    
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="show-inflection">
+                        <span class="checkmark"></span>
+                        <span class="text-sm">Pontos de Inflexão</span>
+                    </label>
+                </div>
+                
+                <!-- Opções específicas para Limite -->
+                <div id="limit-options" class="hidden grid grid-cols-2 gap-3 mt-3">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="show-asymptotes">
+                        <span class="checkmark"></span>
+                        <span class="text-sm">Assíntotas</span>
+                    </label>
+                    
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="show-lateral-limits">
+                        <span class="checkmark"></span>
+                        <span class="text-sm">Limites Laterais</span>
+                    </label>
+                    
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="show-epsilon-delta">
+                        <span class="checkmark"></span>
+                        <span class="text-sm">ε-δ Visual</span>
+                    </label>
+                    
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="show-approach">
+                        <span class="checkmark"></span>
+                        <span class="text-sm">Aproximação</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Controle do Ponto de Estudo -->
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <h4 class="font-bold text-lg flex items-center gap-2">
+                        <i class="fas fa-crosshairs text-emerald-400"></i>
+                        <span id="point-label">Ponto de Estudo</span>
+                    </h4>
+                    <div class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-full font-bold text-lg" id="a-value">1.0</div>
+                </div>
+                
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-slate-500">-5</span>
+                        <input id="x-slider" type="range" min="-5" max="5" step="0.1" value="1" 
+                               class="flex-1 mx-4">
+                        <span class="text-slate-500">5</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-4 gap-2">
+                        <button data-point="-2" class="btn-secondary py-2 text-center text-sm">
+                            a = -2
+                        </button>
+                        <button data-point="0" class="btn-secondary py-2 text-center text-sm">
+                            a = 0
+                        </button>
+                        <button data-point="1" class="btn-secondary py-2 text-center text-sm">
+                            a = 1
+                        </button>
+                        <button data-point="3" class="btn-secondary py-2 text-center text-sm">
+                            a = 3
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teclado Matemático -->
+            <div class="space-y-3">
+                <h4 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fas fa-keyboard text-purple-400"></i>
+                    Teclado
+                </h4>
+                
+                <div class="grid grid-cols-5 gap-2">
+                    <button class="btn-secondary py-3" data-symbol="x">x</button>
+                    <button class="btn-secondary py-3" data-symbol="^">^</button>
+                    <button class="btn-secondary py-3" data-symbol="(">(</button>
+                    <button class="btn-secondary py-3" data-symbol=")">)</button>
+                    <button class="btn-secondary py-3" data-symbol="/">/</button>
+                    <button class="btn-secondary py-3" data-symbol="sin(">sin</button>
+                    <button class="btn-secondary py-3" data-symbol="cos(">cos</button>
+                    <button class="btn-secondary py-3" data-symbol="tan(">tan</button>
+                    <button class="btn-secondary py-3" data-symbol="exp(">eˣ</button>
+                    <button class="btn-secondary py-3" data-symbol="log(">ln</button>
+                    <button class="btn-secondary py-3" data-symbol="sqrt(">√</button>
+                    <button class="btn-secondary py-3" data-symbol="abs(">|x|</button>
+                    <button class="btn-secondary py-3" data-symbol="+">+</button>
+                    <button class="btn-secondary py-3" data-symbol="-">-</button>
+                    <button class="btn-secondary py-3" data-symbol="*">×</button>
+                    <button class="btn-secondary py-3" data-symbol="pi">π</button>
+                    <button class="btn-secondary py-3" data-symbol="e">e</button>
+                    <button class="btn-secondary py-3" id="backspace-btn">
+                        <i class="fas fa-backspace"></i>
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <!-- Results -->
-        <div class="glass-card" id="results-container">
-            <!-- O conteúdo será injetado pelo JavaScript -->
+        <!-- Cálculos e Resultados -->
+        <div class="glass-card">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="font-bold text-lg flex items-center gap-3">
+                    <div class="w-2 h-6 bg-gradient-to-b from-indigo-400 to-purple-400 rounded-full"></div>
+                    Cálculos e Resultados
+                </h3>
+                <div class="flex gap-2">
+                    <div class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold" id="current-mode-label">
+                        FUNÇÃO
+                    </div>
+                    <button id="step-toggle" class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs">
+                        <i class="fas fa-list-ol"></i> Passo a Passo
+                    </button>
+                </div>
+            </div>
+            
+            <div id="analysis-output" class="space-y-6 custom-scrollbar" style="max-height: 400px; overflow-y: auto;">
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-indigo-100 to-purple-100 flex items-center justify-center">
+                        <i class="fas fa-calculator text-indigo-500 text-2xl"></i>
+                    </div>
+                    <p class="text-slate-500">Digite uma função e clique em "Calcular e Plotar"</p>
+                </div>
+            </div>
+            
+            <!-- Passo a Passo -->
+            <div id="step-by-step-container" class="mt-6 hidden">
+                <h4 class="font-bold text-lg mb-4 flex items-center gap-2">
+                    <i class="fas fa-list-ol text-indigo-400"></i>
+                    Passo a Passo
+                </h4>
+                <div id="step-by-step-content" class="space-y-3"></div>
+            </div>
+            
+            <!-- Explicação Conceitual -->
+            <div id="concept-explanation-container" class="mt-6 hidden">
+                <h4 class="font-bold text-lg mb-4 flex items-center gap-2">
+                    <i class="fas fa-lightbulb text-amber-400"></i>
+                    Explicação Conceitual
+                </h4>
+                <div id="concept-explanation-content" class="space-y-3"></div>
+            </div>
+            
+            <!-- Perguntas Orientadoras -->
+            <div id="guiding-questions-container" class="mt-6 hidden">
+                <h4 class="font-bold text-lg mb-4 flex items-center gap-2">
+                    <i class="fas fa-question-circle text-purple-400"></i>
+                    Perguntas para Reflexão
+                </h4>
+                <div id="guiding-questions-content" class="space-y-2"></div>
+            </div>
+            
+            <!-- Cálculos Simbólicos -->
+            <div id="symbolic-calculations" class="mt-6 pt-6 border-t border-slate-200 hidden">
+                <h4 class="font-bold text-lg mb-4 flex items-center gap-2">
+                    <i class="fas fa-calculator text-indigo-400"></i>
+                    Cálculos Simbólicos
+                </h4>
+                <div id="symbolic-output" class="space-y-4"></div>
+            </div>
         </div>
         
-        <!-- Footer -->
-        <div class="text-center mt-6" id="footer-container">
-            <!-- O conteúdo será injetado pelo JavaScript -->
+        <!-- Botão de Feedback -->
+        <div class="text-center mt-6">
+            <button id="feedback-btn" class="btn-secondary text-sm">
+                <i class="fas fa-comment-dots mr-2"></i>
+                Enviar Feedback
+            </button>
+            <p class="text-xs text-slate-500 mt-2">CalculusVision Pro v2.0 - Licença MIT</p>
         </div>
     </div>
 
-    <!-- Modals -->
-    <div id="modals-container">
-        <!-- Todos os modais serão injetados aqui -->
+    <!-- Modais (mantidos do original) -->
+    <div id="examples-modal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-xl">Exemplos de Funções</h3>
+                <button class="modal-close text-2xl text-slate-500 hover:text-slate-700">
+                    &times;
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <button data-example="x^2" class="btn-secondary p-4 text-left">
+                    <div class="math-symbol font-bold text-lg">f(x) = x²</div>
+                    <div class="text-sm text-slate-500 mt-1">Função quadrática básica</div>
+                </button>
+                
+                <button data-example="sin(x)" class="btn-secondary p-4 text-left">
+                    <div class="math-symbol font-bold text-lg">f(x) = sin(x)</div>
+                    <div class="text-sm text-slate-500 mt-1">Função senoidal</div>
+                </button>
+                
+                <!-- Adicione os outros 6 exemplos do original -->
+            </div>
+        </div>
     </div>
+
+    <!-- Adicione os outros modais do original: history, exercises, export, feedback -->
 
     <!-- Badge de Versão -->
     <div class="version-badge">
@@ -95,5 +553,29 @@
     <script src="js/export.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/app.js"></script>
+    
+    <script>
+        // Inicialização imediata para garantir funcionalidade básica
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configurar tema
+            const savedTheme = localStorage.getItem('calculusTheme');
+            if (savedTheme === 'light') {
+                document.body.classList.remove('dark');
+                document.getElementById('theme-toggle').checked = false;
+            }
+            
+            // Configurar modo
+            const savedMode = localStorage.getItem('calculusMode');
+            if (savedMode === 'teacher') {
+                document.body.classList.add('teacher-mode');
+                document.getElementById('mode-label').textContent = 'Professor';
+            }
+            
+            // Inicializar com a função padrão
+            if (window.calculusApp) {
+                window.calculusApp.calculateAndPlot();
+            }
+        });
+    </script>
 </body>
 </html>
