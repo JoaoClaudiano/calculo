@@ -1,0 +1,45 @@
+/* Tema Escuro */
+.dark {
+    --surface: #1e293b;
+    --background: #0f172a;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --border-color: #334155;
+}
+
+/* Tema Claro */
+.light {
+    --surface: #ffffff;
+    --background: #f8fafc;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+}
+
+/* Aplicação do tema */
+body {
+    background-color: var(--background);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+/* Corrigir elementos específicos que não mudavam */
+.glass-card {
+    background: rgba(var(--surface-rgb), 0.7);
+    border: 1px solid var(--border-color);
+}
+
+input, select, textarea {
+    background-color: rgba(var(--surface-rgb), 0.5);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+/* Variáveis RGB para transparência */
+:root {
+    --surface-rgb: 255, 255, 255;
+}
+
+.dark {
+    --surface-rgb: 30, 41, 59;
+}
