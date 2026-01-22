@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CalculusVision Pro - Ferramenta Educacional para Cálculo</title>
+    
+    <!-- Meta tags -->
+    <meta name="description" content="CalculusVision Pro - Ferramenta educacional visual para cálculo diferencial e integral">
+    <meta name="keywords" content="cálculo, matemática, educação, derivada, integral, limite">
+    <meta name="author" content="CalculusVision Team">
+    <meta name="license" content="MIT">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="assets/icons/icon-192.png">
+    
+    <!-- CSS -->
+    <link href="https://cdn.tailwindcss.com" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/components.css">
+    
+    <!-- JS Libraries -->
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+<body class="p-4">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h3 class="font-bold text-lg mb-2">Processando</h3>
+            <p id="loading-message" class="text-sm text-slate-500">Calculando...</p>
+        </div>
+    </div>
+
+    <div class="max-w-md mx-auto space-y-6 pb-20">
+        <!-- Header -->
+        <div class="glass-card" id="header-container">
+            <!-- O conteúdo será injetado pelo JavaScript -->
+        </div>
+
+        <!-- Navigation -->
+        <div class="glass-card p-2" id="navigation-container">
+            <!-- O conteúdo será injetado pelo JavaScript -->
+        </div>
+
+        <!-- Graph -->
+        <div class="glass-card overflow-hidden" id="graph-container">
+            <!-- O conteúdo será injetado pelo JavaScript -->
+        </div>
+
+        <!-- Function Controls -->
+        <div class="glass-card space-y-6" id="controls-container">
+            <!-- O conteúdo será injetado pelo JavaScript -->
+        </div>
+
+        <!-- Results -->
+        <div class="glass-card" id="results-container">
+            <!-- O conteúdo será injetado pelo JavaScript -->
+        </div>
+        
+        <!-- Footer -->
+        <div class="text-center mt-6" id="footer-container">
+            <!-- O conteúdo será injetado pelo JavaScript -->
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modals-container">
+        <!-- Todos os modais serão injetados aqui -->
+    </div>
+
+    <!-- Badge de Versão -->
+    <div class="version-badge">
+        v2.0.0 | MIT License
+    </div>
+
+    <!-- Botão PWA -->
+    <div id="pwa-install" class="pwa-install hidden">
+        <i class="fas fa-download mr-2"></i>
+        Instalar App
+    </div>
+
+    <!-- JavaScript Modularizado -->
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/calculator.js"></script>
+    <script src="js/graph.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/exercises.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/pwa.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
