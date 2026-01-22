@@ -1100,15 +1100,17 @@ class CalculusVisionApp {
         AppState.isDarkMode = !AppState.isDarkMode;
         
         if (AppState.isDarkMode) {
+            document.body.classList.remove('light');
             document.body.classList.add('dark');
             localStorage.setItem('calculusTheme', 'dark');
         } else {
             document.body.classList.remove('dark');
+            document.body.classList.add('light');
             localStorage.setItem('calculusTheme', 'light');
         }
         
         // Atualizar gráfico se existir
-        if (AppState.currentPlot) {
+        if (this.graph.currentPlot) {
             this.graph.updateTheme();
         }
     }
