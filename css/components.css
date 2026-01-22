@@ -48,4 +48,65 @@
     100% { transform: rotate(360deg); }
 }
 
+/* Responsividade para telas pequenas */
+@media (max-width: 640px) {
+    .max-w-md {
+        max-width: 100%;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    
+    .glass-card {
+        padding: 16px;
+        margin: 8px 0;
+    }
+    
+    /* Ajustar altura do gráfico */
+    #plot {
+        height: 300px !important;
+    }
+    
+    /* Ajustar teclado matemático */
+    .math-keyboard {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+    }
+    
+    .math-keyboard button {
+        padding: 10px 4px;
+        font-size: 12px;
+    }
+    
+    /* Ajustar modais */
+    .modal-content {
+        margin: 10px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    
+    /* Ajustar tabs */
+    .tab-container button {
+        padding: 8px 4px;
+        font-size: 10px;
+    }
+    
+    .tab-container i {
+        font-size: 14px;
+    }
+}
+
+/* iPhone específico */
+@supports (-webkit-touch-callout: none) {
+    input, select, textarea {
+        font-size: 16px; /* Prevenir zoom no iOS */
+    }
+    
+    .btn-primary, .btn-secondary {
+        min-height: 44px; /* Tamanho mínimo para toque */
+    }
+}
+
+
+
+
 /* Adicione todos os outros componentes específicos aqui */
