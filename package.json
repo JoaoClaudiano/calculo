@@ -1,0 +1,21 @@
+{
+  "name": "calculusvision-pro",
+  "version": "2.0.0",
+  "description": "Ferramenta educacional visual para cálculo diferencial e integral",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve .",
+    "build": "mkdir -p dist && cp -r *.html *.js *.css *.json assets dist/",
+    "deploy": "npm run build && gh-pages -d dist"
+  },
+  "dependencies": {
+    "mathjs": "^11.8.0"
+  },
+  "devDependencies": {
+    "serve": "^14.0.0",
+    "gh-pages": "^5.0.0"
+  },
+  "keywords": ["cálculo", "matemática", "educação", "visualização"],
+  "author": "CalculusVision Team",
+  "license": "MIT"
+}
