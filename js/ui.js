@@ -32,6 +32,7 @@ class UI {
             container.appendChild(questionDiv);
         });
         
+        
         // Adicionar event listeners
         document.querySelectorAll('.question-toggle').forEach(btn => {
             btn.addEventListener('click', (e) => {
