@@ -1323,6 +1323,61 @@ toggleKeyboard() {
     }
 }
 
+updatePointValue(value = null) {
+    const slider = document.getElementById('x-slider');
+    const display = document.getElementById('a-value');
+    const point = value !== null ? value : slider.value;
+    
+    display.textContent = parseFloat(point).toFixed(1);
+    
+    // Atualização instantânea do gráfico
+    if (AppState.currentFunction && AppState.currentPlot) {
+        // Cancelar atualização anterior se existir
+        if (this.updateTimeout) {
+            clearTimeout(this.updateTimeout);
+        }
+        
+        // Atualizar após pequeno delay para performance
+        this.updateTimeout = setTimeout(() => {
+            this.updatePlotWithPoint(point);
+        }, 100);
+    }
+}
+
+updatePlotWithPoint(point) {
+    try {
+        const f = this.utils.createFunction(AppState.currentFunction);
+        const fa = f(parseFloat(point));
+        
+        // Atualizar apenas o ponto no gráfico
+        if (this.graph.currentPlot) {
+            Plotly.react('plot', this.graph.getUpdatedPointData(point, fa), this.graph.getLayout());
+        }
+        
+        // Atualizar também os cálculos
+        this.updateCalculationsForPoint(point);
+        
+    } catch (error) {
+        console.warn('Não foi possível atualizar ponto:', error);
+    }
+}
+
+updateCalculationsForPoint(point) {
+    // Atualizar cálculos específicos para o novo ponto
+    const analysisOutput = document.getElementById('analysis-output');
+    if (analysisOutput) {
+        // Encontrar e atualizar elementos que mostram f(point)
+        const pointElements = analysisOutput.querySelectorAll('.point-value');
+        pointElements.forEach(el => {
+            if (el.dataset.point === 'x') {
+                const f = this.utils.createFunction(AppState.currentFunction);
+                const value = f(parseFloat(point));
+                el.textContent = value.toFixed(4);
+            }
+        });
+    }
+}
+
 // Inicializar aplicação quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
     window.calculusApp = new CalculusVisionApp();
