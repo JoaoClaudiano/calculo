@@ -106,7 +106,38 @@
     }
 }
 
+/* Animação para ícones do acordeão */
+.rotate-180 {
+    transform: rotate(180deg);
+}
 
+/* Transição suave para acordeões */
+.answer-content {
+    transition: max-height 0.3s ease-out;
+    max-height: 0;
+    overflow: hidden;
+}
+
+.answer-content:not(.hidden) {
+    max-height: 500px;
+}
+
+/* Estilo para perguntas expandidas */
+.question-toggle[aria-expanded="true"] {
+    background: rgba(59, 130, 246, 0.05);
+}
+
+/* Indicador visual para respostas */
+.answer-content::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, #3b82f6, #10b981);
+    border-radius: 3px;
+}
 
 
 /* Adicione todos os outros componentes específicos aqui */
