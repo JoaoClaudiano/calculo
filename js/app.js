@@ -184,6 +184,25 @@ class CalculusVisionApp {
                 }
             });
         });
+        // Adicionar no setupEventListeners:
+document.getElementById('keyboard-toggle').addEventListener('click', () => this.toggleKeyboard());
+
+// Adicionar método:
+toggleKeyboard() {
+    const container = document.getElementById('keyboard-container');
+    const icon = document.getElementById('keyboard-icon');
+    
+    container.classList.toggle('hidden');
+    icon.classList.toggle('rotate-180');
+    
+    // Animar altura
+    if (!container.classList.contains('hidden')) {
+        container.style.maxHeight = container.scrollHeight + 'px';
+    } else {
+        container.style.maxHeight = '0';
+    }
+}
+        
     }
 
     // Métodos principais (implementação completa)
