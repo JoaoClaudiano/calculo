@@ -202,4 +202,137 @@ const Calculator = {
     }
 };
 
+generateDerivativeSteps(expression, point) {
+    const steps = [];
+    
+    try {
+        steps.push({
+            step: 1,
+            title: 'Função Original',
+            content: `$$f(x) = ${this.formatExpression(expression)}$$`,
+            latex: true
+        });
+        
+        // Análise da função
+        const node = math.parse(expression);
+        const terms = this.extractTerms(expression);
+        
+        if (terms.length > 0) {
+            steps.push({
+                step: 2,
+                title: 'Identificação dos Termos',
+                content: `A função possui ${terms.length} termo(s):<br>` +
+                         terms.map(t => `• ${t}`).join('<br>')
+            });
+        }
+        
+        // Derivada passo a passo
+        steps.push({
+            step: 3,
+            title: 'Aplicando Regras de Derivação',
+            content: this.generateDerivationRules(expression)
+        });
+        
+        // Derivada final
+        const derivative = math.derivative(node, 'x');
+        const derivativeStr = derivative.toString();
+        
+        steps.push({
+            step: 4,
+            title: 'Derivada Encontrada',
+            content: `$$f'(x) = ${this.formatExpression(derivativeStr)}$$`,
+            latex: true
+        });
+        
+        // Simplificação (se aplicável)
+        const simplified = math.simplify(derivativeStr);
+        if (simplified.toString() !== derivativeStr) {
+            steps.push({
+                step: 5,
+                title: 'Simplificação',
+                content: `$$f'(x) = ${this.formatExpression(simplified.toString())}$$`,
+                latex: true
+            });
+        }
+        
+        // Avaliação no ponto
+        const valueAtPoint = derivative.evaluate({x: point});
+        
+        steps.push({
+            step: 6,
+            title: 'Avaliando no Ponto',
+            content: `Substituindo $x = ${point}$:<br>` +
+                     `$$f'(${point}) = ${this.formatExpression(derivativeStr.replace(/x/g, `(${point})`))}$$<br>` +
+                     `$$f'(${point}) = ${valueAtPoint.toFixed(4)}$$`,
+            latex: true
+        });
+        
+        // Interpretação
+        steps.push({
+            step: 7,
+            title: 'Interpretação Geométrica',
+            content: this.getDerivativeInterpretation(valueAtPoint, point)
+        });
+        
+    } catch (e) {
+        steps.push({
+            step: 1,
+            title: 'Erro no Cálculo',
+            content: `Não foi possível calcular o passo a passo: ${e.message}`
+        });
+    }
+    
+    return steps;
+}
+
+formatExpression(expr) {
+    // Melhorar formatação de expressões
+    return expr
+        .replace(/\^/g, '^{')
+        .replace(/\*/g, '\\cdot ')
+        .replace(/sin/g, '\\sin')
+        .replace(/cos/g, '\\cos')
+        .replace(/tan/g, '\\tan')
+        .replace(/log/g, '\\log')
+        .replace(/exp/g, 'e^{')
+        .replace(/pi/g, '\\pi')
+        .replace(/sqrt/g, '\\sqrt{');
+}
+
+generateDerivationRules(expression) {
+    const rules = [];
+    const node = math.parse(expression);
+    
+    // Analisar nó por nó
+    this.traverseNode(node, (node, path) => {
+        if (node.isOperatorNode && node.op === '^') {
+            // Regra da potência
+            if (node.args[1].isConstantNode) {
+                const n = node.args[1].value;
+                rules.push(`Regra da potência: $\\frac{d}{dx}[x^{${n}}] = ${n}x^{${n-1}}$`);
+            }
+        } else if (node.isFunctionNode) {
+            // Regra da cadeia
+            if (node.name === 'sin') {
+                rules.push(`Derivada do seno: $\\frac{d}{dx}[\\sin(x)] = \\cos(x)$`);
+            } else if (node.name === 'cos') {
+                rules.push(`Derivada do cosseno: $\\frac{d}{dx}[\\cos(x)] = -\\sin(x)$`);
+            }
+        }
+    });
+    
+    return rules.length > 0 ? rules.join('<br>') : 'Aplicando regras básicas de derivação...';
+}
+
+getDerivativeInterpretation(value, point) {
+    if (value > 0) {
+        return `A derivada é <strong>positiva (${value.toFixed(4)})</strong>, portanto a função é <strong>crescente</strong> no ponto $x = ${point}$.`;
+    } else if (value < 0) {
+        return `A derivada é <strong>negativa (${value.toFixed(4)})</strong>, portanto a função é <strong>decrescente</strong> no ponto $x = ${point}$.`;
+    } else {
+        return `A derivada é <strong>zero</strong>, portanto este pode ser um ponto crítico (máximo, mínimo ou ponto de sela).`;
+    }
+}
+
+
 window.Calculator = Calculator;
