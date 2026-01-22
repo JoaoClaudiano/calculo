@@ -199,140 +199,388 @@ const Calculator = {
         }
 
         return analysis;
-    }
-};
+    },
 
-generateDerivativeSteps(expression, point) {
-    const steps = [];
-    
-    try {
-        steps.push({
-            step: 1,
-            title: 'Função Original',
-            content: `$$f(x) = ${this.formatExpression(expression)}$$`,
-            latex: true
-        });
+    // Funções para passo a passo detalhado
+    generateDerivativeSteps(expression, point) {
+        const steps = [];
         
-        // Análise da função
-        const node = math.parse(expression);
-        const terms = this.extractTerms(expression);
-        
-        if (terms.length > 0) {
+        try {
+            // 1. Mostrar função original
             steps.push({
-                step: 2,
-                title: 'Identificação dos Termos',
-                content: `A função possui ${terms.length} termo(s):<br>` +
-                         terms.map(t => `• ${t}`).join('<br>')
-            });
-        }
-        
-        // Derivada passo a passo
-        steps.push({
-            step: 3,
-            title: 'Aplicando Regras de Derivação',
-            content: this.generateDerivationRules(expression)
-        });
-        
-        // Derivada final
-        const derivative = math.derivative(node, 'x');
-        const derivativeStr = derivative.toString();
-        
-        steps.push({
-            step: 4,
-            title: 'Derivada Encontrada',
-            content: `$$f'(x) = ${this.formatExpression(derivativeStr)}$$`,
-            latex: true
-        });
-        
-        // Simplificação (se aplicável)
-        const simplified = math.simplify(derivativeStr);
-        if (simplified.toString() !== derivativeStr) {
-            steps.push({
-                step: 5,
-                title: 'Simplificação',
-                content: `$$f'(x) = ${this.formatExpression(simplified.toString())}$$`,
+                step: 1,
+                title: 'Função Original',
+                content: `$$f(x) = ${this.formatLatex(expression)}$$`,
                 latex: true
             });
+            
+            // 2. Analisar termos da função
+            const terms = this.extractTerms(expression);
+            if (terms.length > 0) {
+                steps.push({
+                    step: 2,
+                    title: 'Identificação dos Termos',
+                    content: `A função possui ${terms.length} termo(s):<br>` +
+                             terms.map(t => `• ${this.formatLatex(t)}`).join('<br>')
+                });
+            }
+            
+            // 3. Calcular derivada termo a termo
+            const derivativeSteps = this.deriveTermByTerm(expression);
+            if (derivativeSteps.length > 0) {
+                steps.push({
+                    step: 3,
+                    title: 'Derivação Termo a Termo',
+                    content: derivativeSteps.join('<br>')
+                });
+            }
+            
+            // 4. Derivada final
+            const derivative = math.derivative(math.parse(expression), 'x');
+            const derivativeStr = derivative.toString();
+            
+            steps.push({
+                step: 4,
+                title: 'Derivada Encontrada',
+                content: `$$f'(x) = ${this.formatLatex(derivativeStr)}$$`,
+                latex: true
+            });
+            
+            // 5. Simplificação
+            try {
+                const simplified = math.simplify(derivativeStr);
+                if (simplified.toString() !== derivativeStr) {
+                    steps.push({
+                        step: 5,
+                        title: 'Simplificação',
+                        content: `$$f'(x) = ${this.formatLatex(simplified.toString())}$$`,
+                        latex: true
+                    });
+                }
+            } catch (e) {
+                // Ignorar se não puder simplificar
+            }
+            
+            // 6. Avaliação no ponto
+            const valueAtPoint = derivative.evaluate({x: point});
+            
+            steps.push({
+                step: 6,
+                title: 'Avaliação no Ponto',
+                content: `Substituindo $x = ${point}$:<br>` +
+                         `$$f'(${point}) = ${this.formatLatex(derivativeStr)} \\Big|_{x=${point}}$$<br>` +
+                         `$$f'(${point}) = ${valueAtPoint.toFixed(4)}$$`,
+                latex: true
+            });
+            
+            // 7. Interpretação
+            steps.push({
+                step: 7,
+                title: 'Interpretação Geométrica',
+                content: this.getDerivativeInterpretation(valueAtPoint, point)
+            });
+            
+            // 8. Equação da reta tangente
+            if (valueAtPoint !== undefined) {
+                const y0 = math.parse(expression).evaluate({x: point});
+                steps.push({
+                    step: 8,
+                    title: 'Equação da Reta Tangente',
+                    content: `Ponto: $(x_0, y_0) = (${point}, ${y0.toFixed(4)})$<br>` +
+                             `Coeficiente angular: $m = f'(${point}) = ${valueAtPoint.toFixed(4)}$<br>` +
+                             `Equação: $y - ${y0.toFixed(4)} = ${valueAtPoint.toFixed(4)}(x - ${point})$<br>` +
+                             `Simplificando: $y = ${valueAtPoint.toFixed(4)}x + ${(y0 - valueAtPoint * point).toFixed(4)}$`
+                });
+            }
+            
+        } catch (e) {
+            steps.push({
+                step: 1,
+                title: 'Erro no Cálculo',
+                content: `Não foi possível calcular o passo a passo: ${e.message}`
+            });
         }
         
-        // Avaliação no ponto
-        const valueAtPoint = derivative.evaluate({x: point});
-        
-        steps.push({
-            step: 6,
-            title: 'Avaliando no Ponto',
-            content: `Substituindo $x = ${point}$:<br>` +
-                     `$$f'(${point}) = ${this.formatExpression(derivativeStr.replace(/x/g, `(${point})`))}$$<br>` +
-                     `$$f'(${point}) = ${valueAtPoint.toFixed(4)}$$`,
-            latex: true
-        });
-        
-        // Interpretação
-        steps.push({
-            step: 7,
-            title: 'Interpretação Geométrica',
-            content: this.getDerivativeInterpretation(valueAtPoint, point)
-        });
-        
-    } catch (e) {
-        steps.push({
-            step: 1,
-            title: 'Erro no Cálculo',
-            content: `Não foi possível calcular o passo a passo: ${e.message}`
-        });
-    }
-    
-    return steps;
-}
+        return steps;
+    },
 
-formatExpression(expr) {
-    // Melhorar formatação de expressões
-    return expr
-        .replace(/\^/g, '^{')
-        .replace(/\*/g, '\\cdot ')
-        .replace(/sin/g, '\\sin')
-        .replace(/cos/g, '\\cos')
-        .replace(/tan/g, '\\tan')
-        .replace(/log/g, '\\log')
-        .replace(/exp/g, 'e^{')
-        .replace(/pi/g, '\\pi')
-        .replace(/sqrt/g, '\\sqrt{');
-}
+    // Função para formatação LaTeX
+    formatLatex(expr) {
+        return expr
+            .replace(/\^/g, '^{')
+            .replace(/\*\*/g, '^')
+            .replace(/\*/g, '\\cdot ')
+            .replace(/sin\(/g, '\\sin(')
+            .replace(/cos\(/g, '\\cos(')
+            .replace(/tan\(/g, '\\tan(')
+            .replace(/exp\(/g, 'e^{')
+            .replace(/log\(/g, '\\ln(')
+            .replace(/sqrt\(/g, '\\sqrt{')
+            .replace(/pi/g, '\\pi')
+            .replace(/(\d)([a-zA-Z])/g, '$1\\cdot $2')
+            .replace(/([a-zA-Z])(\d)/g, '$1\\cdot $2');
+    },
 
-generateDerivationRules(expression) {
-    const rules = [];
-    const node = math.parse(expression);
-    
-    // Analisar nó por nó
-    this.traverseNode(node, (node, path) => {
-        if (node.isOperatorNode && node.op === '^') {
-            // Regra da potência
-            if (node.args[1].isConstantNode) {
-                const n = node.args[1].value;
-                rules.push(`Regra da potência: $\\frac{d}{dx}[x^{${n}}] = ${n}x^{${n-1}}$`);
+    // Extrair termos da expressão
+    extractTerms(expression) {
+        try {
+            const node = math.parse(expression);
+            const terms = [];
+            
+            if (node.isOperatorNode && (node.op === '+' || node.op === '-')) {
+                // Para soma/subtração, cada argumento é um termo
+                node.args.forEach(arg => {
+                    terms.push(arg.toString());
+                });
+            } else {
+                // Caso contrário, a expressão inteira é um termo
+                terms.push(expression);
             }
+            
+            return terms;
+        } catch (e) {
+            return [expression];
+        }
+    },
+
+    // Derivar termo a termo
+    deriveTermByTerm(expression) {
+        const steps = [];
+        try {
+            const node = math.parse(expression);
+            
+            if (node.isOperatorNode && (node.op === '+' || node.op === '-')) {
+                node.args.forEach((arg, index) => {
+                    const term = arg.toString();
+                    const derivative = math.derivative(arg, 'x');
+                    const rule = this.getDifferentiationRule(arg);
+                    
+                    steps.push(`• $${this.formatLatex(term)} \\rightarrow ${this.formatLatex(derivative.toString())}$ (${rule})`);
+                });
+            } else {
+                const derivative = math.derivative(node, 'x');
+                const rule = this.getDifferentiationRule(node);
+                steps.push(`• $${this.formatLatex(expression)} \\rightarrow ${this.formatLatex(derivative.toString())}$ (${rule})`);
+            }
+        } catch (e) {
+            steps.push('Não foi possível derivar termo a termo');
+        }
+        
+        return steps;
+    },
+
+    // Identificar regra de derivação
+    getDifferentiationRule(node) {
+        if (node.isConstantNode) {
+            return 'Constante: $\\frac{d}{dx}[c] = 0$';
+        } else if (node.isSymbolNode && node.name === 'x') {
+            return 'Potência: $\\frac{d}{dx}[x] = 1$';
+        } else if (node.isOperatorNode && node.op === '^') {
+            const exponent = node.args[1].value || node.args[1];
+            return `Potência: $\\frac{d}{dx}[x^{${exponent}}] = ${exponent}x^{${exponent-1}}$`;
         } else if (node.isFunctionNode) {
-            // Regra da cadeia
-            if (node.name === 'sin') {
-                rules.push(`Derivada do seno: $\\frac{d}{dx}[\\sin(x)] = \\cos(x)$`);
-            } else if (node.name === 'cos') {
-                rules.push(`Derivada do cosseno: $\\frac{d}{dx}[\\cos(x)] = -\\sin(x)$`);
+            switch(node.name) {
+                case 'sin':
+                    return 'Seno: $\\frac{d}{dx}[\\sin(x)] = \\cos(x)$';
+                case 'cos':
+                    return 'Cosseno: $\\frac{d}{dx}[\\cos(x)] = -\\sin(x)$';
+                case 'tan':
+                    return 'Tangente: $\\frac{d}{dx}[\\tan(x)] = \\sec^2(x)$';
+                case 'exp':
+                    return 'Exponencial: $\\frac{d}{dx}[e^x] = e^x$';
+                case 'log':
+                    return 'Logaritmo: $\\frac{d}{dx}[\\ln(x)] = \\frac{1}{x}$';
+                case 'sqrt':
+                    return 'Raiz: $\\frac{d}{dx}[\\sqrt{x}] = \\frac{1}{2\\sqrt{x}}$';
+                default:
+                    return 'Regra da cadeia';
             }
+        } else if (node.isOperatorNode && node.op === '*') {
+            return 'Regra do produto';
+        } else if (node.isOperatorNode && node.op === '/') {
+            return 'Regra do quociente';
         }
-    });
-    
-    return rules.length > 0 ? rules.join('<br>') : 'Aplicando regras básicas de derivação...';
-}
+        
+        return 'Regra geral de derivação';
+    },
 
-getDerivativeInterpretation(value, point) {
-    if (value > 0) {
-        return `A derivada é <strong>positiva (${value.toFixed(4)})</strong>, portanto a função é <strong>crescente</strong> no ponto $x = ${point}$.`;
-    } else if (value < 0) {
-        return `A derivada é <strong>negativa (${value.toFixed(4)})</strong>, portanto a função é <strong>decrescente</strong> no ponto $x = ${point}$.`;
-    } else {
-        return `A derivada é <strong>zero</strong>, portanto este pode ser um ponto crítico (máximo, mínimo ou ponto de sela).`;
+    // Interpretação da derivada
+    getDerivativeInterpretation(value, point) {
+        if (value > 0) {
+            return `A derivada é <strong>positiva (${value.toFixed(4)})</strong>, portanto a função é <strong>crescente</strong> no ponto $x = ${point}$.`;
+        } else if (value < 0) {
+            return `A derivada é <strong>negativa (${value.toFixed(4)})</strong>, portanto a função é <strong>decrescente</strong> no ponto $x = ${point}$.`;
+        } else {
+            return `A derivada é <strong>zero</strong>, portanto este pode ser um ponto crítico (máximo, mínimo ou ponto de sela).`;
+        }
+    },
+
+    // Gerar passos para integrais
+    generateIntegralSteps(expression, a, b) {
+        const steps = [];
+        
+        try {
+            // 1. Mostrar integral
+            steps.push({
+                step: 1,
+                title: 'Integral Definida',
+                content: `$$\\int_{${a}}^{${b}} ${this.formatLatex(expression)} \\, dx$$`,
+                latex: true
+            });
+            
+            // 2. Encontrar primitiva
+            try {
+                const integral = math.integrate(math.parse(expression), 'x');
+                steps.push({
+                    step: 2,
+                    title: 'Encontrando a Primitiva',
+                    content: `$$F(x) = \\int ${this.formatLatex(expression)} \\, dx = ${this.formatLatex(integral.toString())} + C$$`,
+                    latex: true
+                });
+                
+                // 3. Aplicar teorema fundamental
+                const Fa = integral.evaluate({x: a});
+                const Fb = integral.evaluate({x: b});
+                
+                steps.push({
+                    step: 3,
+                    title: 'Aplicar Teorema Fundamental',
+                    content: `$$\\int_{${a}}^{${b}} f(x) \\, dx = F(b) - F(a)$$<br>` +
+                             `$$= F(${b}) - F(${a})$$<br>` +
+                             `$$= [${this.formatLatex(integral.toString())}]_{${a}}^{${b}}$$`,
+                    latex: true
+                });
+                
+                // 4. Substituir limites
+                steps.push({
+                    step: 4,
+                    title: 'Substituir Limites',
+                    content: `$$= [${this.formatLatex(integral.toString().replace(/x/g, b.toString()))}] - [${this.formatLatex(integral.toString().replace(/x/g, a.toString()))}]$$<br>` +
+                             `$$= ${Fb} - (${Fa})$$`,
+                    latex: true
+                });
+                
+                // 5. Resultado final
+                steps.push({
+                    step: 5,
+                    title: 'Resultado Final',
+                    content: `$$\\int_{${a}}^{${b}} ${this.formatLatex(expression)} \\, dx = ${(Fb - Fa).toFixed(4)}$$`,
+                    latex: true
+                });
+                
+            } catch (e) {
+                // Fallback para integração numérica
+                steps.push({
+                    step: 2,
+                    title: 'Usando Integração Numérica',
+                    content: 'Não foi possível encontrar uma primitiva analítica. Usando regra de Simpson para integração numérica.'
+                });
+                
+                const result = this.numericalIntegration(expression, a, b);
+                steps.push({
+                    step: 3,
+                    title: 'Resultado Aproximado',
+                    content: `$$\\int_{${a}}^{${b}} ${this.formatLatex(expression)} \\, dx \\approx ${result.toFixed(4)}$$`,
+                    latex: true
+                });
+            }
+            
+        } catch (e) {
+            steps.push({
+                step: 1,
+                title: 'Erro no Cálculo',
+                content: `Não foi possível calcular a integral: ${e.message}`
+            });
+        }
+        
+        return steps;
+    },
+
+    // Gerar passos para limites
+    generateLimitSteps(expression, point) {
+        const steps = [];
+        
+        try {
+            // 1. Mostrar limite
+            steps.push({
+                step: 1,
+                title: 'Limite a Calcular',
+                content: `$$\\lim_{x \\to ${point}} ${this.formatLatex(expression)}$$`,
+                latex: true
+            });
+            
+            // 2. Tentar substituição direta
+            const f = Utils.createFunction(expression);
+            try {
+                const direct = f(point);
+                if (isFinite(direct)) {
+                    steps.push({
+                        step: 2,
+                        title: 'Substituição Direta',
+                        content: `Substituindo $x = ${point}$:<br>` +
+                                 `$$f(${point}) = ${this.formatLatex(expression.replace(/x/g, point.toString()))}$$<br>` +
+                                 `$$= ${direct.toFixed(4)}$$`,
+                        latex: true
+                    });
+                    
+                    steps.push({
+                        step: 3,
+                        title: 'Resultado',
+                        content: `$$\\lim_{x \\to ${point}} ${this.formatLatex(expression)} = ${direct.toFixed(4)}$$`,
+                        latex: true
+                    });
+                } else {
+                    throw new Error('Resultado infinito ou indefinido');
+                }
+            } catch (e) {
+                // 3. Calcular limites laterais
+                steps.push({
+                    step: 2,
+                    title: 'Substituição Direta Falhou',
+                    content: 'A substituição direta resulta em forma indeterminada ou indefinida. Calculando limites laterais.'
+                });
+                
+                const epsilon = 0.0001;
+                const left = f(point - epsilon);
+                const right = f(point + epsilon);
+                
+                steps.push({
+                    step: 3,
+                    title: 'Limites Laterais',
+                    content: `Limite à esquerda: $\\lim_{x \\to ${point}^{-}} f(x) \\approx f(${point} - 0.0001) = ${left.toFixed(4)}$<br>` +
+                             `Limite à direita: $\\lim_{x \\to ${point}^{+}} f(x) \\approx f(${point} + 0.0001) = ${right.toFixed(4)}$`,
+                    latex: true
+                });
+                
+                // 4. Verificar existência
+                if (Math.abs(left - right) < 0.001) {
+                    const limit = (left + right) / 2;
+                    steps.push({
+                        step: 4,
+                        title: 'Limite Existe',
+                        content: `Como os limites laterais são iguais:<br>` +
+                                 `$$\\lim_{x \\to ${point}} ${this.formatLatex(expression)} = ${limit.toFixed(4)}$$`,
+                        latex: true
+                    });
+                } else {
+                    steps.push({
+                        step: 4,
+                        title: 'Limite Não Existe',
+                        content: `Como os limites laterais são diferentes ($${left.toFixed(4)} \\neq ${right.toFixed(4)}$), o limite não existe.`
+                    });
+                }
+            }
+            
+        } catch (e) {
+            steps.push({
+                step: 1,
+                title: 'Erro no Cálculo',
+                content: `Não foi possível calcular o limite: ${e.message}`
+            });
+        }
+        
+        return steps;
     }
-}
-
+};
 
 window.Calculator = Calculator;
