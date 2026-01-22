@@ -400,36 +400,41 @@
             </div>
 
             <!-- Teclado Matemático -->
-            <div class="space-y-3">
-                <h4 class="font-bold text-lg flex items-center gap-2">
-                    <i class="fas fa-keyboard text-purple-400"></i>
-                    Teclado
-                </h4>
-                
-                <div class="grid grid-cols-5 gap-2">
-                    <button class="btn-secondary py-3" data-symbol="x">x</button>
-                    <button class="btn-secondary py-3" data-symbol="^">^</button>
-                    <button class="btn-secondary py-3" data-symbol="(">(</button>
-                    <button class="btn-secondary py-3" data-symbol=")">)</button>
-                    <button class="btn-secondary py-3" data-symbol="/">/</button>
-                    <button class="btn-secondary py-3" data-symbol="sin(">sin</button>
-                    <button class="btn-secondary py-3" data-symbol="cos(">cos</button>
-                    <button class="btn-secondary py-3" data-symbol="tan(">tan</button>
-                    <button class="btn-secondary py-3" data-symbol="exp(">eˣ</button>
-                    <button class="btn-secondary py-3" data-symbol="log(">ln</button>
-                    <button class="btn-secondary py-3" data-symbol="sqrt(">√</button>
-                    <button class="btn-secondary py-3" data-symbol="abs(">|x|</button>
-                    <button class="btn-secondary py-3" data-symbol="+">+</button>
-                    <button class="btn-secondary py-3" data-symbol="-">-</button>
-                    <button class="btn-secondary py-3" data-symbol="*">×</button>
-                    <button class="btn-secondary py-3" data-symbol="pi">π</button>
-                    <button class="btn-secondary py-3" data-symbol="e">e</button>
-                    <button class="btn-secondary py-3" id="backspace-btn">
-                        <i class="fas fa-backspace"></i>
+            <!-- Teclado Matemático (Acordeão) -->
+            <div class="glass-card">
+                <div class="space-y-3">
+                    <button id="keyboard-toggle" class="w-full flex justify-between items-center p-3 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg">
+                        <h4 class="font-bold text-lg flex items-center gap-2">
+                            <i class="fas fa-keyboard text-purple-400"></i>
+                            Teclado Matemático
+                        </h4>
+                        <i class="fas fa-chevron-down transition-transform duration-300" id="keyboard-icon"></i>
                     </button>
+                    
+                    <div id="keyboard-container" class="grid grid-cols-5 gap-2 transition-all duration-300 overflow-hidden hidden">
+                        <button class="btn-secondary py-3" data-symbol="x">x</button>
+                        <button class="btn-secondary py-3" data-symbol="^">^</button>
+                        <button class="btn-secondary py-3" data-symbol="(">(</button>
+                        <button class="btn-secondary py-3" data-symbol=")">)</button>
+                        <button class="btn-secondary py-3" data-symbol="/">/</button>
+                        <button class="btn-secondary py-3" data-symbol="sin(">sin</button>
+                        <button class="btn-secondary py-3" data-symbol="cos(">cos</button>
+                        <button class="btn-secondary py-3" data-symbol="tan(">tan</button>
+                        <button class="btn-secondary py-3" data-symbol="exp(">eˣ</button>
+                        <button class="btn-secondary py-3" data-symbol="log(">ln</button>
+                        <button class="btn-secondary py-3" data-symbol="sqrt(">√</button>
+                        <button class="btn-secondary py-3" data-symbol="abs(">|x|</button>
+                        <button class="btn-secondary py-3" data-symbol="+">+</button>
+                        <button class="btn-secondary py-3" data-symbol="-">-</button>
+                        <button class="btn-secondary py-3" data-symbol="*">×</button>
+                        <button class="btn-secondary py-3" data-symbol="pi">π</button>
+                        <button class="btn-secondary py-3" data-symbol="e">e</button>
+                        <button class="btn-secondary py-3" id="backspace-btn">
+                            <i class="fas fa-backspace"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
 
         <!-- Cálculos e Resultados -->
         <div class="glass-card">
